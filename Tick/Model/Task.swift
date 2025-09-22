@@ -13,6 +13,7 @@ enum TaskPriority: String, Codable {
 }
 
 struct Task: Codable {
+    var id = UUID()
     var title: String
     var isCompleted: Bool
     var priority: TaskPriority

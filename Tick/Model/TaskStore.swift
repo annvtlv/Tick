@@ -8,20 +8,27 @@
 import Foundation
 
 protocol TaskStoreProtocol {
-    var tasks: [Task] { get }
+    
     func load()
     func save()
+    
+    func addTask(_ task: Task)
+    func getTasks(priority: TaskPriority?) -> [Task]
+    func updateTask(_ task: Task)
+    func removeTask(withId id: UUID)
 }
 
 class TaskStore: TaskStoreProtocol {
     
-    private(set) var tasks: [Task] = []
+    private var tasks: [Task] = []
     private let storage = UserDefaults.standard
     private let storageKey = "ann.vtlv.tasks.v1"
     
     init(useDevData: Bool = false) {
         useDevData ? loadDevData() : load()
     }
+    
+    // MARK: - Persistence Service
     
     func load() {
         guard let data = storage.data(forKey: storageKey) else {
@@ -46,6 +53,39 @@ class TaskStore: TaskStoreProtocol {
             print("❌ Failed to save tasks: \(error)")
         }
     }
+    
+    // MARK: - CRUD
+    
+    func addTask(_ task: Task) {
+        tasks.append(task)
+        save()
+    }
+    
+    func getTasks(priority: TaskPriority? = nil) -> [Task] {
+        guard let priority else { return tasks }
+        return tasks.filter { $0.priority == priority }
+    }
+    
+    func updateTask(_ task: Task) {
+        if let index = tasks.firstIndex(where: { $0.id == task.id }) {
+            tasks[index] = task
+        }
+        save()
+    }
+    
+    func toggleCompletion(for id: UUID) {
+        guard let index = tasks.firstIndex(where: { $0.id == id }) else { return }
+        tasks[index].isCompleted.toggle()
+        save()
+    }
+    
+    func removeTask(withId id: UUID) {
+        guard let index = tasks.firstIndex(where: { $0.id == id }) else { return }
+        tasks.remove(at: index)
+        save()
+    }
+    
+    // MARK: - Dev Data
     
     private func loadDevData() {
         tasks = [
