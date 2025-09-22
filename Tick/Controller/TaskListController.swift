@@ -8,6 +8,8 @@
 import UIKit
 
 class TaskListController: UITableViewController {
+    
+    var taskStore: TaskStoreProtocol = TaskStore(useDevData: true)
 
     override func viewDidLoad() {
         super.viewDidLoad()
