@@ -9,20 +9,27 @@ import Foundation
 
 protocol TaskStoreProtocol {
     
+    var onChange: (([Task]) -> Void)? { get set }
+    
     func load()
     func save()
     
     func addTask(_ task: Task)
-    func getTasks(priority: TaskPriority?) -> [Task]
+    func getTasks() -> [Task]
     func updateTask(_ task: Task)
     func removeTask(withId id: UUID)
 }
 
 class TaskStore: TaskStoreProtocol {
     
-    private var tasks: [Task] = []
+    private var tasks: [Task] = [] {
+        didSet {
+            onChange?(tasks)
+        }
+    }
     private let storage = UserDefaults.standard
     private let storageKey = "ann.vtlv.tasks.v1"
+    var onChange: (([Task]) -> Void)?
     
     init(useDevData: Bool = false) {
         useDevData ? loadDevData() : load()
@@ -61,9 +68,8 @@ class TaskStore: TaskStoreProtocol {
         save()
     }
     
-    func getTasks(priority: TaskPriority? = nil) -> [Task] {
-        guard let priority else { return tasks }
-        return tasks.filter { $0.priority == priority }
+    func getTasks() -> [Task] {
+        tasks
     }
     
     func updateTask(_ task: Task) {

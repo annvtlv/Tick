@@ -10,39 +10,72 @@ import UIKit
 class TaskListController: UITableViewController {
     
     var taskStore: TaskStoreProtocol = TaskStore(useDevData: true)
+    private var tasksByPriority: [TaskPriority: [Task]] = [:] {
+        didSet {
+            for (taskGroupPriority, taskGroup) in tasksByPriority {
+                tasksByPriority[taskGroupPriority] = taskGroup.sorted { task1, task2 in
+                    let firstTaskPosition = taskStatusPosition.firstIndex(of: task1.isCompleted) ?? 0
+                    let secondTaskPosition = taskStatusPosition.firstIndex(of: task2.isCompleted) ?? 0
+                    return firstTaskPosition < secondTaskPosition
+                }
+            }
+        }
+    }
+    
+    let sectionsPrioritiesPosition: [TaskPriority] = [.important, .normal]
+    var taskStatusPosition: [Bool] = [false, true]
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .red
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+        tableView.register(TaskTableViewCell.self, forCellReuseIdentifier: "TaskCell")
+        loadTasks(tasks: taskStore.getTasks())
+        taskStore.onChange = { [weak self] tasks in
+            self?.loadTasks(tasks: tasks)
+            self?.tableView.reloadData()
+        }
+    }
+    
+    private func loadTasks(tasks: [Task]) {
+        sectionsPrioritiesPosition.forEach { priority in
+            tasksByPriority[priority] = []
+        }
+        tasks.forEach { task in
+            tasksByPriority[task.priority]?.append(task)
+        }
     }
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-        return 0
+        return sectionsPrioritiesPosition.count
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
-        return 0
+        let priority = sectionsPrioritiesPosition[section]
+        guard let currentPriorityTasks = tasksByPriority[priority] else { return 0 }
+        return currentPriorityTasks.count
     }
 
-    /*
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
-
-        // Configure the cell...
+        
+        let cell = tableView.dequeueReusableCell(withIdentifier: "TaskCell", for: indexPath) as! TaskTableViewCell
+        let priority = sectionsPrioritiesPosition[indexPath.section]
+        guard let currentTask = tasksByPriority[priority]?[indexPath.row] else { return cell }
+        cell.configure(with: currentTask)
 
         return cell
     }
-    */
+    
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        var title: String?
+        switch sectionsPrioritiesPosition[section] {
+        case .important:
+            title = "Important"
+        case .normal:
+            title = "Current"
+        }
+        return title
+    }
 
     /*
     // Override to support conditional editing of the table view.
